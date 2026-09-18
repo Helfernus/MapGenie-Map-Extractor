@@ -191,11 +191,11 @@ IT-provided PEM file with `--ca-bundle`. Use `-- insecure` only as a temporary d
 
 Downloads keep only a small bounded set of jobs in flight rather than creating a future for every coordinate. Stitching is also streaming: PNG scanlines are written incrementally, keeping roughly one horizontal tile row in memory instead of one giant RGBA canvas.
 
-## v1.8.1 maintenance release
+## v1.0 maintenance release
 
 - Fixes GUI startup on Python 3.14: Tk variables are now created through one helper that always binds the Tk master explicitly.
 - Adds a regression test for Boolean Tk variable initialization.
-- Keeps the v1.8 bounded in-flight downloader and lean refactor unchanged.
+- Keeps the v0.9 bounded in-flight downloader and lean refactor unchanged.
 - Moves GUI/CLI usage and command examples to the top of this README.
 
 ## Limitations
