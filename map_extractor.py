@@ -7,6 +7,7 @@ import os
 import re
 import ssl
 import struct
+import subprocess
 import sys
 import tempfile
 import threading
@@ -95,6 +96,19 @@ DEFAULT_TILES_BASE_URL = "https://tiles.mapgenie.io"
 DEFAULT_API_BASE_URL = "https://mapgenie.io/api/v1"
 APP_VERSION = "1.0"
 ProgressCallback = Callable[[str, int, int], None]
+
+
+def format_elapsed(seconds: float) -> str:
+    minutes, seconds = divmod(max(0, round(seconds)), 60)
+    hours, minutes = divmod(minutes, 60)
+    return f"{hours:d}:{minutes:02d}:{seconds:02d}" if hours else f"{minutes:02d}:{seconds:02d}"
+
+def open_folder(path: Path) -> None:
+    path = path.resolve()
+    if os.name == "nt":
+        os.startfile(path) # type: ignore[attr-defined]
+    else:
+        subprocess.Popen(["open" if sys.platform == "darwin" else "xdg-open", str(path)])
 
 
 @dataclass(frozen=True)
@@ -1175,6 +1189,7 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--version", action="version", version=f"%(prog)s {APP_VERSION}")
     p.add_argument("url", help="Map page URL, e.g. https://mapgenie.io/.../maps/... or https://rdr2map.com/")
     p.add_argument("--output", default="output", help="Output directory (default: output)")
+    p.add_argument("--open-output", action="store_true", help="Open output directory after a successful extraction")
     p.add_argument("--all-maps", action="store_true", help="Also process sibling canonical mapgenie.io map pages")
     p.add_argument("--inspect", action="store_true", help="Inspect config and live maximum zoom only")
     p.add_argument("--tileset", type=int, help="Only process one tile-set index")
@@ -1228,6 +1243,7 @@ def main(argv: list[str] | None = None) -> int:
                 print(describe_map_with_availability(client.inspect_map(url), client.verify, args.transport, args.zoom), "\n")
             return 0
 
+        started = time.perf_counter()
         output = Path(args.output).expanduser().resolve()
         output.mkdir(parents=True, exist_ok=True)
         stitched: list[Path] = []
@@ -1249,6 +1265,12 @@ def main(argv: list[str] | None = None) -> int:
         if stitched:
             print("\nStitched files:")
             print("\n".join(f"  {path}" for path in stitched))
+        print(f"\nExtraction complete in {format_elapsed(time.perf_counter() - started)}")
+        if args.open_output:
+            try:
+                open_folder(output)
+            except OSError as exc:
+                print(f"WARNING: Could not open output folder: {exc}", file=sys.stderr)
         return 0
     except (MapGenieError, requests.RequestException, OSError, ValueError) as exc:
         print(f"ERROR: {exc}", file=sys.stderr)

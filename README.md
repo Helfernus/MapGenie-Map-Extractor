@@ -20,12 +20,13 @@ Downloads MapGenie-backed raster tiles at each layer's **highest actually downlo
 3. Leave **Max zoom = auto** for highest available detail, or enter a cap such as `6`.
 4. Leave **Transport = auto** unless diagnosing a problem.
 5. Click **Analyze** to inspect layers, bounds, advertised zoom, and highest downloadable zoom.
-6. Click **Download + Stitche** to cache tiles and build the PNGs.
+6. Click **Download + Stitche** to cache tiles and build the PNGs. Completion shows elapsed time and, by default, opens the output folder.
 
 Useful GUI controls:
 
 - **Also discover sibling map pages**: canonical `mapgenie.io` URLs only. All tile sets on the current page are always processed.
 - **Stitch...**: disable to download/cache tiles without building PNGs.
+- **Open output folder when done**: enabled by default, uncheck to keep Explorer/Finder/File Manager closed.
 - **Workers / Delay / Retries**: tune download concurrency and pacing.
 - **Max zoom**: `auto` uses the highest downloadable level; a number caps preflight/download at that zoom and still falls back lower if needed.
 - **Transport**: `auto`, `chrome`, or `requests`. `auto` uses Chrome impersonation for branded sites and Requests for canonical MapGenie pages.
@@ -46,6 +47,9 @@ python map_extractor.py "MAP_PAGE_URL" --inspect
 
 # Download all tile sets and stitch PNGs
 python map_extractor.py "MAP_PAGE_URL" --output ./output
+
+# Same, then open the output directory when complete
+python map_extractor.py "MAP_PAGE_URL" --output ./output --open-output
 
 # Cap download at z6 (falls back lower only if z6 is unavailable)
 python map_extractor.py "MAP_PAGE_URL" --zoom 6 --output ./output
@@ -82,6 +86,8 @@ python map_extractor.py "MAP_PAGE_URL" --inspect --insecure
 python map_extractor.py --version
 python map_extractor.py --help
 ```
+
+Every CLI extraction prints its elapsed time on completion; `--open-output` additionally opens the output directory.
 
 ### GTA III examples
 
@@ -167,6 +173,12 @@ output/
 ```
 
 Existing non-empty cached tiles are reused on later runs, so interrupted jobs can resume.
+
+## Tree Symbol Windows Shortcuts
+
+* Alt + 192 └
+* Alt + 196 ─
+* Alt + 195 ├
 
 ## Corporate proxy / certificate errors
 

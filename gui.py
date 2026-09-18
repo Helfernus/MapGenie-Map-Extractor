@@ -2,11 +2,12 @@ from __future__ import annotations
 
 import queue
 import threading
+import time
 import tkinter as tk
 from pathlib import Path
 from tkinter import filedialog, messagebox, ttk
 
-from map_extractor import APP_VERSION, MapGenieClient, MapGenieError, describe_map_with_availability, process_map
+from map_extractor import APP_VERSION, MapGenieClient, MapGenieError, describe_map_with_availability, format_elapsed, open_folder, process_map
 
 DEFAULT_URL = "https://mapgenie.io/grand-theft-auto-3/maps/liberty-city"
 
@@ -28,6 +29,7 @@ class ExtractorGUI(tk.Tk):
         self.out_var = self._var(tk.StringVar, str((Path.cwd() / "output").resolve()))
         self.all_maps_var = self._var(tk.BooleanVar, False)
         self.stitch_var = self._var(tk.BooleanVar, True)
+        self.open_output_var = self._var(tk.BooleanVar, True)
         self.concurrency_var = self._var(tk.IntVar, 4)
         self.request_delay_var = self._var(tk.DoubleVar, 0.12)
         self.retries_var = self._var(tk.IntVar, 5)
@@ -92,6 +94,7 @@ class ExtractorGUI(tk.Tk):
         self.run_button = ttk.Button(buttons, text="Download + Stitch", command=self.run_extraction)
         self.analyze_button.pack(side="left")
         self.run_button.pack(side="left", padx=(8, 0))
+        ttk.Checkbutton(buttons, text="Open folder when done", variable=self.open_output_var).pack(side="left", padx=12)
 
         self.progress = ttk.Progressbar(frame, mode="determinate", maximum=100)
         self.progress.grid(row=9, column=0, columnspan=3, sticky="ew", pady=(0, 4))
@@ -200,11 +203,13 @@ class ExtractorGUI(tk.Tk):
             delay = max(0.0, float(self.request_delay_var.get()))
             retries = max(1, int(self.retries_var.get()))
             stitch = self.stitch_var.get()
+            open_output = self.open_output_var.get()
 
             def progress(message: str, current: int, total: int):
                 self.events.put(("progress", message, current, total))
 
             def work():
+                started = time.perf_counter()
                 self._tls_log(client)
                 urls = self._urls(client, url, all_maps)
                 outputs = []
@@ -228,7 +233,8 @@ class ExtractorGUI(tk.Tk):
                     self.events.put(("log", "Stitched PNG files:"))
                     for path in outputs:
                         self.events.put(("log", f"  {path}"))
-                self.events.put(("done", "Extraction complete"))
+                elapsed = format_elapsed(time.perf_counter() - started)
+                self.events.put(("done", f"Extraction complete — {elapsed}", output if open_output else None))
 
             return work
 
@@ -250,6 +256,11 @@ class ExtractorGUI(tk.Tk):
                     self.progress["value"] = 100
                     self.status_var.set(event[1])
                     self.set_busy(False)
+                    if len(event) > 2 and event[2]:
+                        try:
+                            open_folder(event[2])
+                        except OSError as exc:
+                            self.append(f"Could not open output folder: {exc}")
                     messagebox.showinfo("Map extractor", event[1])
                 elif kind == "error":
                     self._fail(RuntimeError(event[1]))
